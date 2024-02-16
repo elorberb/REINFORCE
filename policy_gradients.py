@@ -40,6 +40,13 @@ class PolicyNetwork:
             self.loss = tf.reduce_mean(self.neg_log_prob * self.R_t)
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
+            # Add a scalar summary for the loss
+            self.summary_loss = tf.summary.scalar("loss", self.loss)
+
+            # Placeholder for the average reward
+            self.avg_reward_placeholder = tf.placeholder(tf.float32, name="average_reward")
+            self.summary_avg_reward = tf.summary.scalar("average_reward", self.avg_reward_placeholder)
+
 
 def run():
     # Define hyperparameters
@@ -60,6 +67,10 @@ def run():
     # Start training the agent with REINFORCE algorithm
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        # Create a summary writer
+        writer = tf.summary.FileWriter('./tensorboard_logs', sess.graph)
+
         solved = False
         Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
         episode_rewards = np.zeros(max_episodes)
@@ -88,6 +99,12 @@ def run():
                     if episode > 98:
                         # Check if solved
                         average_rewards = np.mean(episode_rewards[(episode - 99):episode+1])
+
+                        # Log the average reward
+                        summary_avg_reward = sess.run(policy.summary_avg_reward,
+                                                      feed_dict={policy.avg_reward_placeholder: average_rewards})
+                        writer.add_summary(summary_avg_reward, episode)
+
                     print("Episode {} Reward: {} Average over 100 episodes: {}".format(episode, episode_rewards[episode], round(average_rewards, 2)))
                     if average_rewards > 475:
                         print(' Solved at episode: ' + str(episode))
@@ -103,6 +120,13 @@ def run():
                 total_discounted_return = sum(discount_factor ** i * t.reward for i, t in enumerate(episode_transitions[t:])) # Rt
                 feed_dict = {policy.state: transition.state, policy.R_t: total_discounted_return, policy.action: transition.action}
                 _, loss = sess.run([policy.optimizer, policy.loss], feed_dict)
+
+                feed_dict = {policy.state: transition.state, policy.R_t: total_discounted_return,
+                             policy.action: transition.action}
+                _, loss, summary = sess.run([policy.optimizer, policy.loss, policy.summary_loss], feed_dict)
+
+                # Write the summary for the current step
+                writer.add_summary(summary, episode * max_steps + t)
 
 
 if __name__ == '__main__':

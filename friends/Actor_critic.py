@@ -48,7 +48,7 @@ def run(verbose=False):
     max_episodes = 5000
     max_steps = 501
     discount_factor = 0.99
-    learning_rate = 0.0001
+    learning_rate = 0.001
 
     render = False
 
