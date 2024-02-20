@@ -10,6 +10,7 @@ print("tf_ver:{}".format(tf.__version__))
 
 np.random.seed(1)
 
+
 class PolicyNetwork:
     def __init__(self, state_size, action_size, learning_rate, name='policy_network'):
         self.state_size = state_size
@@ -17,7 +18,6 @@ class PolicyNetwork:
         self.learning_rate = learning_rate
 
         with tf.variable_scope(name):
-
             self.state = tf.placeholder(tf.float32, [None, self.state_size], name="state")
             self.action = tf.placeholder(tf.int32, [self.action_size], name="action")
             self.R_t = tf.placeholder(tf.float32, name="total_rewards")
@@ -37,7 +37,7 @@ class PolicyNetwork:
             # Loss with negative log probability
             self.neg_log_prob = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.output, labels=self.action)
             self.loss = tf.reduce_mean(self.neg_log_prob * self.R_t)
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
 
 class ValueNetwork:
@@ -47,16 +47,47 @@ class ValueNetwork:
             self.R_t = tf.placeholder(tf.float32, name="total_rewards")
 
             # Simple one-layer network
-            self.W1 = tf.get_variable("W1", [state_size, 20], initializer=tf.keras.initializers.glorot_normal(seed=0))
-            self.b1 = tf.get_variable("b1", [20], initializer=tf.zeros_initializer())
+            self.W1 = tf.get_variable("W1", [state_size, 32], initializer=tf.keras.initializers.glorot_normal(seed=0))
+            self.b1 = tf.get_variable("b1", [32], initializer=tf.zeros_initializer())
             self.Z1 = tf.add(tf.matmul(self.state, self.W1), self.b1)
             self.A1 = tf.nn.relu(self.Z1)
 
             # Output layer
-            self.W2 = tf.get_variable("W2", [20, 1], initializer=tf.keras.initializers.glorot_normal(seed=0))
+            self.W2 = tf.get_variable("W2", [32, 1], initializer=tf.keras.initializers.glorot_normal(seed=0))
             self.b2 = tf.get_variable("b2", [1], initializer=tf.zeros_initializer())
             self.value = tf.add(tf.matmul(self.A1, self.W2), self.b2)
 
             # Loss
             self.loss = tf.reduce_mean(tf.square(self.R_t - self.value))
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
+
+
+class ValueNetwork_v2:
+    def __init__(self, state_size, learning_rate=0.001, name='value_network'):
+        self.loss_function = tf.keras.losses.MeanSquaredError()
+        with tf.variable_scope(name):
+            self.state = tf.placeholder(tf.float32, [None, state_size], name="state")
+            self.R_t = tf.placeholder(tf.float32, name="total_rewards")
+
+            # Simple one-layer network
+            self.W1 = tf.get_variable("W1", [state_size, 64], initializer=tf.keras.initializers.glorot_normal(seed=0))
+            self.b1 = tf.get_variable("b1", [64], initializer=tf.zeros_initializer())
+            self.Z1 = tf.add(tf.matmul(self.state, self.W1), self.b1)
+            self.A1 = tf.nn.relu(self.Z1)
+
+            # Output layer
+            self.W2 = tf.get_variable("W2", [64, 32], initializer=tf.keras.initializers.glorot_normal(seed=0))
+            self.b2 = tf.get_variable("b2", [32], initializer=tf.zeros_initializer())
+            self.Z2 = tf.add(tf.matmul(self.A1, self.W2), self.b2)
+            self.A2 = tf.nn.relu(self.Z2)
+
+            # Output layer
+            self.W3 = tf.get_variable("W3", [32, 1], initializer=tf.keras.initializers.glorot_normal(seed=0))
+            self.b3 = tf.get_variable("b3", [1], initializer=tf.zeros_initializer())
+            self.value = tf.add(tf.matmul(self.A2, self.W3), self.b3)
+
+            # Loss
+            self.loss = self.loss_function(self.R_t, self.value)
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
+
+
