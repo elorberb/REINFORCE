@@ -1,0 +1,6 @@
+gymnasium
+numpy
+tensorflow
+tqdm
+ipykernel
+matplotlib
