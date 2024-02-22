@@ -4,7 +4,7 @@ import tensorflow.compat.v1 as tf
 import collections
 import time
 from tqdm import tqdm
-from code.networks import PolicyNetwork, ValueNetwork, BigValueNetwork
+from src.networks import PolicyNetwork, ValueNetwork, BigValueNetwork
 
 # optimized for Tf2
 tf.disable_v2_behavior()
